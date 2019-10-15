@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>ETags - ajax example</title>
+  </head>
+  <style>
+    body {
+      font-family: "Arial";
+      font-size: 15px;
+    }
+
+    .field {
+      background: #ace8e2;
+      padding: 10px;
+      width: 400px;
+      height: 20px;
+      margin-bottom: 10px;
+      color: #205279;
+      font-weight: bold;
+    }
+
+    .etag {
+      background: #acd6e8;
+    }
+  
+  </style>
+  <body>
+    <h1>ETag</h1>
+    <div id="status" class="field">status:</div>
+    <div id="etag" class="field etag">etag:</div>
+    <input value="etag"></input>
+    <button id="btn" onclick="clickHandler()">xhr</button>
+  </body>
+  <script>
+
+    function clickHandler() {
+      let xhr = new XMLHttpRequest();
+      xhr.open("GET", "/etags");
+      // make sure that the req doesn't send no-cache (e.g postman)
+      xhr.setRequestHeader("Cache-Control", "max-age=10000, public");
+
+      const etagFromInputEl = document.getElementsByTagName("input")[0].value;
+      const statusEl = document.getElementById("status");
+      const eTagEl = document.getElementById("etag");
+      
+      // send etag
+      xhr.setRequestHeader("If-None-Match", etagFromInputEl);
+      // request state change event
+      xhr.onreadystatechange = function() {
+        statusEl.innerHTML = `status: ${xhr.status}`;
+
+        if (xhr.readyState !== 4) return;
+
+        if (xhr.status === 200) {
+          const etagValue = xhr.getResponseHeader("ETag");
+          eTagEl.innerHTML = `etag: ${etagValue}`;
+          statusEl.innerHTML = `status: ${xhr.status}, response: ${xhr.response}`;
+          console.log(xhr.response)
+
+        } else {
+          // request error
+          console.log("HTTP error", xhr.status, xhr.statusText);
+        }
+      };
+
+      // start request
+      xhr.send();
+    }
+  </script>
+</html>
