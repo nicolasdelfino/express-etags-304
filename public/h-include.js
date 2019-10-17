@@ -47,8 +47,8 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
   function isAcceptedReqStatus(statusCode) {
     var acceptedStatusCodes = [200, 304];
 
-    if(config && config.renderOnStatusCodes) {
-      acceptedStatusCodes = config.renderOnStatusCodes;
+    if(config && config.acceptedStatusCodes) {
+      acceptedStatusCodes = config.acceptedStatusCodes;
     }
     if(acceptedStatusCodes.indexOf(statusCode) > -1) {
       return true;
@@ -56,8 +56,8 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
     return false;
   }
 
-  function shouldCallOnEnd(req, acceptedStatus) {
-    if(config && config.renderOnStatusCodes && !acceptedStatus) {
+  function shouldProvideClassStatus(req, acceptedStatus) {
+    if(config && config.acceptedStatusCodes && !acceptedStatus) {
       return false;
     } 
     return true;
@@ -79,10 +79,7 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
     } else {
       // accepted request status failed
     }
-
-    if(shouldCallOnEnd(req, acceptedStatus)) {
-      element.onEnd.call(element, req);
-    }
+    element.onEnd.call(element, req, acceptedStatus);
   }
 
   function setContentAsync(element, req) {
@@ -188,10 +185,10 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
           outstanding -= 1;
           include(element, includeCallback);
         } else {
-          if (config && config.getResponseHeaders && config.getResponseHeadersCallback) {
+          if (config && config.getResponseHeaderKeys && config.getResponseHeadersCallback) {
             var responseHeaders = [];
-            for (var i = 0; i < config.getResponseHeaders.length; i++) {
-              var headerKey = config.getResponseHeaders[i];
+            for (var i = 0; i < config.getResponseHeaderKeys.length; i++) {
+              var headerKey = config.getResponseHeaderKeys[i];
               var headerValue = req.getResponseHeader(headerKey);
               responseHeaders.push({key: headerKey, value: headerValue});
             }
@@ -280,14 +277,16 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
     this.innerHTML = node.innerHTML;
   };
 
-  proto.onEnd = function(req) {
-    var tokens = this.className.split(/\s+/);
-    var otherClasses = tokens.filter(function(token){
-      return !token.match(/^include_\d+$/i) && !token.match(/^included/i);
-    }).join(' ');
-
-    this.className = otherClasses + (otherClasses ? ' ' : '') +
-      'included ' + classprefix + req.status;
+  proto.onEnd = function(req, acceptedStatus) {
+    if(shouldProvideClassStatus(req, acceptedStatus)) {
+      var tokens = this.className.split(/\s+/);
+      var otherClasses = tokens.filter(function(token){
+        return !token.match(/^include_\d+$/i) && !token.match(/^included/i);
+      }).join(' ');
+  
+      this.className = otherClasses + (otherClasses ? ' ' : '') +
+        'included ' + classprefix + req.status;
+    }
 
     altSrcInclude = false;
   };

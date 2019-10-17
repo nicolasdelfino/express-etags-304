@@ -52,12 +52,12 @@
     setRequestHeaders: [
       { key: "Cache-Control", value: "max-age=10000, public" }
     ],
-    getResponseHeaders: ["ETag"],
+    getResponseHeaderKeys: ["ETag"],
     getResponseHeadersCallback: function (responseHeaders) {
       const hincludeETagEl = document.getElementById("h-include-etag");
       hincludeETagEl.innerHTML = `h-include etag: ${responseHeaders[0].value}`;
     },
-    renderOnStatusCodes: [200]
+    acceptedStatusCodes: [200]
   };
 </script>
 <script src="h-include.js"></script>
