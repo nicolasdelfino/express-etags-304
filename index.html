@@ -15,7 +15,7 @@
     .field {
       background: #ace8e2;
       padding: 10px;
-      width: 400px;
+      width: 500px;
       height: 20px;
       margin-bottom: 10px;
       color: #205279;
@@ -25,16 +25,54 @@
     .etag {
       background: #acd6e8;
     }
+
+    .hinclude-controls {
+      margin-top: 10px;
+    }
   
   </style>
   <body>
-    <h1>ETag</h1>
+    <h1>ETag Express 304 example</h1>
+    <h3>Ajax</h3>
     <div id="status" class="field">status:</div>
     <div id="etag" class="field etag">etag:</div>
     <input value="etag"></input>
     <button id="btn" onclick="clickHandler()">xhr</button>
+    <h3>h-include</h3>
+    <div id="h-include-etag" class="field etag">h-include etag:</div>
+    <h-include id="hinclude" src="/etags"></h-include>
+    <div class="hinclude-controls">
+      <button id="h-include-set-etag-header" onclick="hincludeClickHandler()">set if-none-match header with etag</button>
+      <button id="h-include-refresh" onclick="hincludeRefreshHandler()">refresh h-include</button>
+    </div>
   </body>
   <script>
+    HIncludeConfig = { 
+      setRequestHeaders: [
+        {key: "Cache-Control", value: "max-age=10000, public"}
+      ],
+      getResponseHeaders: ["ETag"],
+      getResponseHeadersCallback: function(responseHeaders) {
+        console.log('getResponseHeadersCallback', responseHeaders);
+        const hincludeETagEl = document.getElementById("h-include-etag");
+        hincludeETagEl.innerHTML = `h-include etag: ${responseHeaders[0].value}`;
+      }
+    };
+  </script>
+  <script src="h-include.js"></script>
+  <script>
+    function hincludeRefreshHandler() {
+      console.log('refresh');
+      const hIncludeEl = document.getElementById("hinclude");
+      hIncludeEl.refresh();
+    }
+    function hincludeClickHandler() {
+      const hincludeETagEl = document.getElementById("h-include-etag");
+      const value = hincludeETagEl.innerHTML;
+      const etag = value.split(': ')[1];
+
+      HIncludeConfig.setRequestHeaders.push({key: 'If-None-Match', value: etag});
+    }
 
     function clickHandler() {
       let xhr = new XMLHttpRequest();
