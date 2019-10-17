@@ -44,9 +44,30 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
   var outstanding = 0;
   var altSrcInclude = false;
 
+  function isAcceptedReqStatus(statusCode) {
+    var acceptedStatusCodes = [200, 304];
+
+    if(config && config.renderOnStatusCodes) {
+      acceptedStatusCodes = config.renderOnStatusCodes;
+    }
+    if(acceptedStatusCodes.indexOf(statusCode) > -1) {
+      return true;
+    }
+    return false;
+  }
+
+  function shouldCallOnEnd(req, acceptedStatus) {
+    if(config && config.renderOnStatusCodes && !acceptedStatus) {
+      return false;
+    } 
+    return true;
+  }
+
   function showContent(element, req){
     var fragment = element.getAttribute('fragment') || 'body';
-    if (req.status === 200 || req.status === 304) {
+    var acceptedStatus = isAcceptedReqStatus(req.status);
+
+    if(acceptedStatus) {
       var container = element.createContainer.call(element, req);
 
       if (config && config.checkRecursion) {
@@ -55,8 +76,13 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
 
       var node = element.extractFragment.call(element, container, fragment, req);
       element.replaceContent.call(element, node);
+    } else {
+      // accepted request status failed
     }
-    element.onEnd.call(element, req);
+
+    if(shouldCallOnEnd(req, acceptedStatus)) {
+      element.onEnd.call(element, req);
+    }
   }
 
   function setContentAsync(element, req) {
@@ -171,7 +197,6 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
             }
             config.getResponseHeadersCallback(responseHeaders);
           }
-          
           includeCallback(element, req);
         }
       }

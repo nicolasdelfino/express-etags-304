@@ -7,7 +7,7 @@ app.set('etag', 'strong');
 app.use(express.static('public'))
 
 app.get('/etags', (req, res) => {   
- res.send("hello world");   
+ res.send("<p>response: etags</p>");   
 })
 
 app.get('/', (req, res) => {

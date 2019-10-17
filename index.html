@@ -1,111 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>ETags - ajax example</title>
-  </head>
-  <style>
-    body {
-      font-family: "Arial";
-      font-size: 15px;
-    }
 
-    .field {
-      background: #ace8e2;
-      padding: 10px;
-      width: 500px;
-      height: 20px;
-      margin-bottom: 10px;
-      color: #205279;
-      font-weight: bold;
-    }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>ETags - ajax example</title>
+</head>
+<style>
+  body {
+    font-family: "Arial";
+    font-size: 15px;
+  }
 
-    .etag {
-      background: #acd6e8;
-    }
+  .field {
+    background: #ace8e2;
+    padding: 10px;
+    width: 500px;
+    height: 20px;
+    margin-bottom: 10px;
+    color: #205279;
+    font-weight: bold;
+  }
 
-    .hinclude-controls {
-      margin-top: 10px;
-    }
-  
-  </style>
-  <body>
-    <h1>ETag Express 304 example</h1>
-    <h3>Ajax</h3>
-    <div id="status" class="field">status:</div>
-    <div id="etag" class="field etag">etag:</div>
-    <input value="etag"></input>
-    <button id="btn" onclick="clickHandler()">xhr</button>
-    <h3>h-include</h3>
-    <div id="h-include-etag" class="field etag">h-include etag:</div>
-    <h-include id="hinclude" src="/etags"></h-include>
-    <div class="hinclude-controls">
-      <button id="h-include-set-etag-header" onclick="hincludeClickHandler()">set if-none-match header with etag</button>
-      <button id="h-include-refresh" onclick="hincludeRefreshHandler()">refresh h-include</button>
-    </div>
-  </body>
-  <script>
-    HIncludeConfig = { 
-      setRequestHeaders: [
-        {key: "Cache-Control", value: "max-age=10000, public"}
-      ],
-      getResponseHeaders: ["ETag"],
-      getResponseHeadersCallback: function(responseHeaders) {
-        console.log('getResponseHeadersCallback', responseHeaders);
-        const hincludeETagEl = document.getElementById("h-include-etag");
-        hincludeETagEl.innerHTML = `h-include etag: ${responseHeaders[0].value}`;
+  .etag {
+    background: #acd6e8;
+  }
+
+  .hinclude-controls {
+    margin-top: 10px;
+  }
+</style>
+
+<body>
+  <h1>ETag Express 304 example</h1>
+  <h3>ajax</h3>
+  <div id="status" class="field">status:</div>
+  <div id="etag" class="field etag">etag:</div>
+  <input value="etag"></input>
+  <button id="btn" onclick="clickHandler()">xhr</button>
+  <h3>h-include</h3>
+  <div id="h-include-etag" class="field etag">h-include etag:</div>
+  <h-include id="hinclude" src="/etags"></h-include>
+  <div class="hinclude-controls">
+    <button id="h-include-set-etag-header" onclick="hincludeClickHandler()">set if-none-match header with etag</button>
+    <button id="h-include-refresh" onclick="hincludeRefreshHandler()">refresh h-include</button>
+  </div>
+</body>
+<script>
+  HIncludeConfig = {
+    setRequestHeaders: [
+      { key: "Cache-Control", value: "max-age=10000, public" }
+    ],
+    getResponseHeaders: ["ETag"],
+    getResponseHeadersCallback: function (responseHeaders) {
+      const hincludeETagEl = document.getElementById("h-include-etag");
+      hincludeETagEl.innerHTML = `h-include etag: ${responseHeaders[0].value}`;
+    },
+    renderOnStatusCodes: [200]
+  };
+</script>
+<script src="h-include.js"></script>
+<script>
+  function hincludeRefreshHandler() {
+    const hIncludeEl = document.getElementById("hinclude");
+    hIncludeEl.refresh();
+  }
+
+  function hincludeClickHandler() {
+    const hincludeETagEl = document.getElementById("h-include-etag");
+    const value = hincludeETagEl.innerHTML;
+    const etag = value.split(': ')[1];
+    HIncludeConfig.setRequestHeaders.push({ key: 'If-None-Match', value: etag });
+  }
+
+  function clickHandler() {
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", "/etags");
+    // make sure that the req doesn't send no-cache (e.g postman)
+    xhr.setRequestHeader("Cache-Control", "max-age=10000, public");
+
+    const etagFromInputEl = document.getElementsByTagName("input")[0].value;
+    const statusEl = document.getElementById("status");
+    const eTagEl = document.getElementById("etag");
+
+    // send etag
+    xhr.setRequestHeader("If-None-Match", etagFromInputEl);
+    // request state change event
+    xhr.onreadystatechange = function () {
+      statusEl.innerHTML = `status: ${xhr.status}`;
+
+      if (xhr.readyState !== 4) return;
+
+      if (xhr.status === 200) {
+        const etagValue = xhr.getResponseHeader("ETag");
+        eTagEl.innerHTML = `etag: ${etagValue}`;
+        statusEl.innerHTML = `status: ${xhr.status}, response: ${xhr.response}`;
+        // console.log(xhr.response)
+
+      } else {
+        // request error
+        // console.log("HTTP error", xhr.status, xhr.statusText);
       }
     };
-  </script>
-  <script src="h-include.js"></script>
-  <script>
-    function hincludeRefreshHandler() {
-      console.log('refresh');
-      const hIncludeEl = document.getElementById("hinclude");
-      hIncludeEl.refresh();
-    }
-    function hincludeClickHandler() {
-      const hincludeETagEl = document.getElementById("h-include-etag");
-      const value = hincludeETagEl.innerHTML;
-      const etag = value.split(': ')[1];
 
-      HIncludeConfig.setRequestHeaders.push({key: 'If-None-Match', value: etag});
-    }
+    // start request
+    xhr.send();
+  }
+</script>
 
-    function clickHandler() {
-      let xhr = new XMLHttpRequest();
-      xhr.open("GET", "/etags");
-      // make sure that the req doesn't send no-cache (e.g postman)
-      xhr.setRequestHeader("Cache-Control", "max-age=10000, public");
-
-      const etagFromInputEl = document.getElementsByTagName("input")[0].value;
-      const statusEl = document.getElementById("status");
-      const eTagEl = document.getElementById("etag");
-      
-      // send etag
-      xhr.setRequestHeader("If-None-Match", etagFromInputEl);
-      // request state change event
-      xhr.onreadystatechange = function() {
-        statusEl.innerHTML = `status: ${xhr.status}`;
-
-        if (xhr.readyState !== 4) return;
-
-        if (xhr.status === 200) {
-          const etagValue = xhr.getResponseHeader("ETag");
-          eTagEl.innerHTML = `etag: ${etagValue}`;
-          statusEl.innerHTML = `status: ${xhr.status}, response: ${xhr.response}`;
-          console.log(xhr.response)
-
-        } else {
-          // request error
-          console.log("HTTP error", xhr.status, xhr.statusText);
-        }
-      };
-
-      // start request
-      xhr.send();
-    }
-  </script>
 </html>
