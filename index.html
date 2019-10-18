@@ -42,6 +42,7 @@
     <button id="h-include-refresh" onclick="hincludeRefreshHandler()">refresh h-include</button>
   </div>
 </body>
+
 <script>
   HIncludeConfig = {
     setRequestHeaders: [
@@ -55,7 +56,9 @@
     renderStatusCodes: [200]
   };
 </script>
+
 <script src="h-include.js"></script>
+
 <script>
   function hincludeRefreshHandler() {
     const hIncludeEl = document.getElementById("hinclude");
@@ -67,40 +70,6 @@
     const value = hincludeETagEl.innerHTML;
     const etag = value.split(': ')[1];
     HIncludeConfig.setRequestHeaders.push({ key: 'If-None-Match', value: etag });
-  }
-
-  function clickHandler() {
-    let xhr = new XMLHttpRequest();
-    xhr.open("GET", "/etags");
-    // make sure that the req doesn't send no-cache (e.g postman)
-    xhr.setRequestHeader("Cache-Control", "max-age=10000, public");
-
-    const etagFromInputEl = document.getElementsByTagName("input")[0].value;
-    const statusEl = document.getElementById("status");
-    const eTagEl = document.getElementById("etag");
-
-    // send etag
-    xhr.setRequestHeader("If-None-Match", etagFromInputEl);
-    // request state change event
-    xhr.onreadystatechange = function () {
-      statusEl.innerHTML = `status: ${xhr.status}`;
-
-      if (xhr.readyState !== 4) return;
-
-      if (xhr.status === 200) {
-        const etagValue = xhr.getResponseHeader("ETag");
-        eTagEl.innerHTML = `etag: ${etagValue}`;
-        statusEl.innerHTML = `status: ${xhr.status}, response: ${xhr.response}`;
-        // console.log(xhr.response)
-
-      } else {
-        // request error
-        // console.log("HTTP error", xhr.status, xhr.statusText);
-      }
-    };
-
-    // start request
-    xhr.send();
   }
 </script>
 
