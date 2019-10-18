@@ -17,7 +17,7 @@
 })();
 
 /*
-h-include.js -- HTML Includes (version 4.0.0)
+h-include.js -- HTML Includes (version 4.1.0)
 
 MIT Style License
 
@@ -44,20 +44,20 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
   var outstanding = 0;
   var altSrcInclude = false;
 
-  function isAcceptedReqStatus(statusCode) {
-    var acceptedStatusCodes = [200, 304];
+  function isValidRenderStatus(status) {
+    var renderStatusCodes = [200, 304];
 
-    if(config && config.acceptedStatusCodes) {
-      acceptedStatusCodes = config.acceptedStatusCodes;
+    if(config && config.renderStatusCodes) {
+      renderStatusCodes = config.renderStatusCodes;
     }
-    if(acceptedStatusCodes.indexOf(statusCode) > -1) {
+    if(renderStatusCodes.indexOf(status) > -1) {
       return true;
     }
     return false;
   }
 
-  function shouldProvideClassStatus(req, acceptedStatus) {
-    if(config && config.acceptedStatusCodes && !acceptedStatus) {
+  function shouldProvideInclusionStatus(req, shouldRender) {
+    if(req.status < 400 && config && config.renderStatusCodes && !shouldRender) {
       return false;
     } 
     return true;
@@ -65,9 +65,9 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
 
   function showContent(element, req){
     var fragment = element.getAttribute('fragment') || 'body';
-    var acceptedStatus = isAcceptedReqStatus(req.status);
+    var shouldRender = isValidRenderStatus(req.status);
 
-    if(acceptedStatus) {
+    if(shouldRender) {
       var container = element.createContainer.call(element, req);
 
       if (config && config.checkRecursion) {
@@ -79,7 +79,7 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
     } else {
       // accepted request status failed
     }
-    element.onEnd.call(element, req, acceptedStatus);
+    element.onEnd.call(element, req, shouldRender);
   }
 
   function setContentAsync(element, req) {
@@ -185,14 +185,14 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
           outstanding -= 1;
           include(element, includeCallback);
         } else {
-          if (config && config.getResponseHeaderKeys && config.getResponseHeadersCallback) {
-            var responseHeaders = [];
-            for (var i = 0; i < config.getResponseHeaderKeys.length; i++) {
-              var headerKey = config.getResponseHeaderKeys[i];
-              var headerValue = req.getResponseHeader(headerKey);
-              responseHeaders.push({key: headerKey, value: headerValue});
+          if (config && config.getResponseHeaderKeys) {
+            if(!config.onGetResponseHeaders) {
+              throw new Error('onGetResponseHeaders function not provided in config');
             }
-            config.getResponseHeadersCallback(responseHeaders);
+            var responseHeaders = config.getResponseHeaderKeys.map(function(headerKey) {
+              return {key: headerKey, value: req.getResponseHeader(headerKey)};
+            })
+            config.onGetResponseHeaders(responseHeaders);
           }
           includeCallback(element, req);
         }
@@ -277,8 +277,8 @@ window.HInclude.HIncludeElement = window.HIncludeElement = (function() {
     this.innerHTML = node.innerHTML;
   };
 
-  proto.onEnd = function(req, acceptedStatus) {
-    if(shouldProvideClassStatus(req, acceptedStatus)) {
+  proto.onEnd = function(req, shouldRender) {
+    if(shouldProvideInclusionStatus(req, shouldRender)) {
       var tokens = this.className.split(/\s+/);
       var otherClasses = tokens.filter(function(token){
         return !token.match(/^include_\d+$/i) && !token.match(/^included/i);
